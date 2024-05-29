@@ -17,7 +17,7 @@ class MyApp extends StatelessWidget {
       theme: ThemeData(
         primarySwatch: Colors.red,
         colorScheme: ColorScheme.fromSwatch(primarySwatch: Colors.red).copyWith(
-          secondary: Colors.redAccent,
+          secondary: const Color.fromARGB(255, 255, 168, 168),
         ),
         scaffoldBackgroundColor: Colors.white, // Fondo blanco
         appBarTheme: const AppBarTheme(
