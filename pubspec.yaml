@@ -37,6 +37,7 @@ dependencies:
   cupertino_icons: ^1.0.6
   image_picker: ^1.0.4
   mobile_scanner: ^5.1.0
+  audioplayers: ^5.2.1
 
 dev_dependencies:
   flutter_test:
@@ -59,6 +60,8 @@ dev_dependencies:
 
 # The following section is specific to Flutter packages.
 flutter:
+ assets:
+    - assets/audio/
 
   # The following line ensures that the Material Icons font is
   # included with your application, so that you can use the icons in

@@ -1,15 +1,16 @@
 import 'package:flutter/material.dart';
+import 'package:escaner_qr/maquinado/mobile_scanner_overlay.dart';
 import 'package:escaner_qr/maquinado/maquinado_main.dart';
-import 'package:escaner_qr/estante/estante_main.dart';
+import 'package:escaner_qr/main.dart';
 
 void main() {
   runApp(
-    const MyApp(),
+    const EstanteApp(),
   );
 }
 
-class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+class EstanteApp extends StatelessWidget {
+  const EstanteApp({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -34,13 +35,13 @@ class MyApp extends StatelessWidget {
         //   // Aquí puedes agregar más estilos de texto según sea necesario
         // ),
       ),
-      home: const MyHome(),
+      home: const EstanteHome(),
     );
   }
 }
 
-class MyHome extends StatelessWidget {
-  const MyHome({Key? key}) : super(key: key);
+class EstanteHome extends StatelessWidget {
+  const EstanteHome({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -56,11 +57,6 @@ class MyHome extends StatelessWidget {
                   context,
                   MaterialPageRoute(builder: (context) => MaquinadoHome()),
                 );
-              } else if (mode == 'estante') {
-                Navigator.pushReplacement(
-                  context,
-                  MaterialPageRoute(builder: (context) => EstanteHome()),
-                );
               }
             },
             itemBuilder: (BuildContext context) => <PopupMenuEntry<String>>[
@@ -68,17 +64,40 @@ class MyHome extends StatelessWidget {
                 value: 'maquinado',
                 child: Text('Maquinado'),
               ),
-              const PopupMenuItem<String>(
-                value: 'estante',
-                child: Text('Estante'),
-              ),
             ],
           ),
         ],
+        leading: IconButton(
+          icon: Icon(Icons.arrow_back),
+          onPressed: () {
+            // Navegar al main principal del proyecto
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(builder: (context) => MyApp()),
+            );
+          },
+        ),
       ),
-      body: const Center(
-        child: Text('Contenido de la pantalla principal'),
+      body: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.spaceAround,
+          children: [
+            // ElevatedButton eliminado
+          ],
+        ),
       ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () {
+          Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (context) => BarcodeScannerWithOverlay(),
+            ),
+          );
+        },
+        child: Icon(Icons.qr_code_scanner), // Icono de la cámara
+        backgroundColor: Colors.red, // Color de fondo del botón flotante
+      ),
+      floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,// Coloca el botón flotante en la esquina inferior derecha
     );
   }
 }
