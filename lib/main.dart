@@ -54,7 +54,7 @@ class MyHome extends StatelessWidget {
               if (mode == 'maquinado') {
                 Navigator.pushReplacement(
                   context,
-                  MaterialPageRoute(builder: (context) => MaquinadoHome()),
+                  MaterialPageRoute(builder: (context) => MaquinadoApp()),
                 );
               } else if (mode == 'estante') {
                 Navigator.pushReplacement(

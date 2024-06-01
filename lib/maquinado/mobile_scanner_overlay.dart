@@ -12,6 +12,7 @@ class BarcodeScannerWithOverlay extends StatefulWidget {
 }
 
 class _BarcodeScannerWithOverlayState extends State<BarcodeScannerWithOverlay> {
+  
   final MobileScannerController controller = MobileScannerController(
     formats: const [BarcodeFormat.qrCode],
   );

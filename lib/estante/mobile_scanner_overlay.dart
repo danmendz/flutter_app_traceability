@@ -3,12 +3,17 @@ import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:escaner_qr/scanned_barcode_label.dart';
 import 'package:escaner_qr/scanner_button_widgets.dart';
 import 'package:escaner_qr/scanner_error_widget.dart';
-import 'result_screen.dart';
+import 'package:escaner_qr/estante/estante_main.dart';
+import 'package:audioplayers/audioplayers.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
 
 class BarcodeScannerWithOverlay extends StatefulWidget {
+  final String? selectedEstanteId; // Definir el parámetro aquí
+  const BarcodeScannerWithOverlay({Key? key, this.selectedEstanteId}) : super(key: key);
+
   @override
-  _BarcodeScannerWithOverlayState createState() =>
-      _BarcodeScannerWithOverlayState();
+  _BarcodeScannerWithOverlayState createState() => _BarcodeScannerWithOverlayState();
 }
 
 class _BarcodeScannerWithOverlayState extends State<BarcodeScannerWithOverlay> {
@@ -52,14 +57,7 @@ class _BarcodeScannerWithOverlayState extends State<BarcodeScannerWithOverlay> {
                       onScanned: (String qrData) {
                         if (!_isNavigating) {
                           _isNavigating = true;
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => ResultScreen(qrData: qrData),
-                            ),
-                          ).then((_) {
-                            _isNavigating = false;
-                          });
+                          enviarDatosEscaneados(context, widget.selectedEstanteId ?? "", qrData);
                         }
                       },
                     ),
@@ -108,6 +106,57 @@ class _BarcodeScannerWithOverlayState extends State<BarcodeScannerWithOverlay> {
     await controller.dispose();
   }
 }
+
+class Player {
+  static play(String src) async {
+    final player = AudioPlayer();
+    await player.play(AssetSource(src));
+  }
+}
+
+Future<void> enviarDatosEscaneados(BuildContext context, String selectedId, String qrData) async {
+  try {
+    final response = await http.post(
+      Uri.parse('URL_DE_TU_API'),
+      body: json.encode({'selectedId': selectedId, 'data': qrData}),
+      headers: {'Content-Type': 'application/json'},
+    );
+
+    if (response.statusCode == 200) {
+      _showDialog(context, 'Éxito', 'Datos registrados exitosamente');
+      await Player.play('audio/correct-sound.mp3');
+    } else {
+      _showDialog(context, 'Error', 'Error al enviar los datos escaneados: ${response.reasonPhrase}');
+      await Player.play('audio/wrong-sound.mp3');
+      // throw Exception('Error al enviar los datos escaneados: ${response.statusCode}');
+    }
+  } catch (error) {
+    _showDialog(context, 'Error', 'Error al enviar los datos escaneados: $error');
+    await Player.play('audio/wrong-sound.mp3');
+    // throw Exception('Error al enviar los datos escaneados: $error');
+  }
+}
+
+void _showDialog(BuildContext context, String title, String message) {
+  showDialog(
+    context: context,
+    builder: (BuildContext context) {
+      return AlertDialog(
+        title: Text(title),
+        content: Text(message),
+        actions: <Widget>[
+          TextButton(
+            child: Text('OK'),
+            onPressed: () {
+              Navigator.of(context).pop();
+            },
+          ),
+        ],
+      );
+    },
+  );
+}
+
 
 class ScannerOverlay extends CustomPainter {
   const ScannerOverlay({
