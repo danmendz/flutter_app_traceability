@@ -11,24 +11,14 @@ class ResultScreen extends StatefulWidget {
   _ResultScreenState createState() => _ResultScreenState();
 }
 
+class Player {
+  static play(String src) async {
+    final player = AudioPlayer();
+    await player.play(AssetSource(src));
+  }
+}
+
 class _ResultScreenState extends State<ResultScreen> {
-  late AudioPlayer _audioPlayer;
-  late AudioCache _audioCache;
-
-  @override
-  void initState() {
-    super.initState();
-    _audioPlayer = AudioPlayer();
-    _audioCache = AudioCache();
-  }
-
-  @override
-  void dispose() {
-    _audioPlayer.dispose();
-    super.dispose();
-  }
-
-
 
   final _formKey = GlobalKey<FormState>();
   String _fullName = '';
@@ -49,17 +39,15 @@ class _ResultScreenState extends State<ResultScreen> {
         'operador': _fullName,
       },
     ));
-
+    
     if (response.statusCode == 200) {
       // Éxito en la solicitud
-      _audioPlayer.play(
-        AudioSource.uri(Uri.parse('asset:/audio/success_sound.mp3')),
-      );
       _showDialog('Éxito', 'Datos registrados exitosamente');
+      await Player.play('audio/correct-sound.mp3');
     } else {
       // Error en la solicitud
-      _audioPlayer.play('success_sound.mp3');
       _showDialog('Error', 'Error al registrar datos: ${response.reasonPhrase}');
+      await Player.play('audio/wrong-sound.mp3');
     }
   }
 
