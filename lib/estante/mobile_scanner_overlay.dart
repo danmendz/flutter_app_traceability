@@ -57,7 +57,7 @@ class _BarcodeScannerWithOverlayState extends State<BarcodeScannerWithOverlay> {
                       onScanned: (String qrData) {
                         if (!_isNavigating) {
                           _isNavigating = true;
-                          enviarDatosEscaneados(context, widget.selectedEstanteId ?? "", qrData);
+                          validarYEnviarDatos(context, widget.selectedEstanteId ?? "", qrData);
                         }
                       },
                     ),
@@ -114,26 +114,44 @@ class Player {
   }
 }
 
-Future<void> enviarDatosEscaneados(BuildContext context, String selectedId, String qrData) async {
+Future<void> validarYEnviarDatos(BuildContext context, String selectedId, String qrData) async {
   try {
-    final response = await http.post(
-      Uri.parse('URL_DE_TU_API'),
-      body: json.encode({'selectedId': selectedId, 'data': qrData}),
-      headers: {'Content-Type': 'application/json'},
+    // Validar el QR primero
+    final validacionResponse = await http.get(
+      Uri.parse('https://ventas-productos-pvamp.000webhostapp.com/validar-qr.php?data=$qrData'),
     );
 
-    if (response.statusCode == 200) {
-      _showDialog(context, 'Éxito', 'Datos registrados exitosamente');
-      await Player.play('audio/correct-sound.mp3');
+    // Imprimir la respuesta de validación
+    print('Validación response: ${validacionResponse.statusCode}');
+    print('Validación body: ${validacionResponse.body}');
+
+     if (validacionResponse.statusCode == 200) {
+      // QR válido, proceder a enviar los datos
+      final response = await http.post(
+        Uri.parse('https://ventas-productos-pvamp.000webhostapp.com/insertar-reporte-estante.php?datos=$qrData&estante=$selectedId'),
+        body: json.encode({'selectedId': selectedId, 'data': qrData}),
+        headers: {'Content-Type': 'application/json'},
+      );
+
+      // Imprimir la respuesta de envío
+      print('Envío response: ${response.statusCode}');
+      print('Envío body: ${response.body}');
+
+      if (response.statusCode == 200) {
+        _showDialog(context, 'Éxito', 'Datos registrados exitosamente');
+        await Player.play('audio/correct-sound.mp3');
+      } else {
+        _showDialog(context, 'Error', 'Error al enviar los datos escaneados: ${response.reasonPhrase}');
+        await Player.play('audio/wrong-sound.mp3');
+      }
     } else {
-      _showDialog(context, 'Error', 'Error al enviar los datos escaneados: ${response.reasonPhrase}');
+      // QR no válido
+      _showDialog(context, 'Error', 'QR no válido');
       await Player.play('audio/wrong-sound.mp3');
-      // throw Exception('Error al enviar los datos escaneados: ${response.statusCode}');
     }
   } catch (error) {
-    _showDialog(context, 'Error', 'Error al enviar los datos escaneados: $error');
+    _showDialog(context, 'Error', 'Error al validar/enviar los datos: $error');
     await Player.play('audio/wrong-sound.mp3');
-    // throw Exception('Error al enviar los datos escaneados: $error');
   }
 }
 
