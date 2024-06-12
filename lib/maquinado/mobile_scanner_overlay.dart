@@ -18,6 +18,7 @@ class _BarcodeScannerWithOverlayState extends State<BarcodeScannerWithOverlay> {
   );
 
   bool _isNavigating = false;
+  String _lastScannedData = '';
 
   @override
   Widget build(BuildContext context) {
@@ -43,38 +44,29 @@ class _BarcodeScannerWithOverlayState extends State<BarcodeScannerWithOverlay> {
               errorBuilder: (context, error, child) {
                 return ScannerErrorWidget(error: error);
               },
-              overlayBuilder: (context, constraints) {
-                return Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: Align(
-                    alignment: Alignment.bottomCenter,
-                    child: ScannedBarcodeLabel(
-                      barcodes: controller.barcodes,
-                      onScanned: (String qrData) {
-                        if (!_isNavigating) {
-                          _isNavigating = true;
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => ResultScreen(qrData: qrData),
-                            ),
-                          ).then((_) {
-                            _isNavigating = false;
-                          });
-                        }
-                      },
-                    ),
-                  ),
-                );
+              onDetect: (capture) async {
+                if (!_isNavigating) {
+                  final String qrData = capture.barcodes.first.displayValue ?? 'Información no obtenida.';
+                  if (qrData != _lastScannedData) {
+                    _lastScannedData = qrData;
+                    _isNavigating = true;
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => ResultScreen(qrData: qrData),
+                      ),
+                    ).then((_) {
+                      _isNavigating = false;
+                    });
+                  }
+                }
               },
             ),
           ),
           ValueListenableBuilder(
             valueListenable: controller,
             builder: (context, value, child) {
-              if (!value.isInitialized ||
-                  !value.isRunning ||
-                  value.error != null) {
+              if (!value.isInitialized || !value.isRunning || value.error != null) {
                 return const SizedBox();
               }
 
@@ -84,9 +76,9 @@ class _BarcodeScannerWithOverlayState extends State<BarcodeScannerWithOverlay> {
             },
           ),
           Positioned(
-            top: 16.0, // Margen desde la parte superior
-            left: 0, // Centrado horizontal
-            right: 0, // Centrado horizontal
+            top: 16.0,
+            left: 0,
+            right: 0,
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16.0),
               child: Row(
@@ -121,8 +113,6 @@ class ScannerOverlay extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    // TODO: use `Offset.zero & size` instead of Rect.largest
-    // we need to pass the size to the custom paint widget
     final backgroundPath = Path()..addRect(Rect.largest);
 
     final cutoutPath = Path()
@@ -160,9 +150,6 @@ class ScannerOverlay extends CustomPainter {
       bottomRight: Radius.circular(borderRadius),
     );
 
-    // First, draw the background,
-    // with a cutout area that is a bit larger than the scan window.
-    // Finally, draw the scan window itself.
     canvas.drawPath(backgroundWithCutout, backgroundPaint);
     canvas.drawRRect(borderRect, borderPaint);
   }

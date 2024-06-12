@@ -9,7 +9,7 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 
 class BarcodeScannerWithOverlay extends StatefulWidget {
-  final String? selectedEstanteId; // Definir el parámetro aquí
+  final String? selectedEstanteId;
   const BarcodeScannerWithOverlay({Key? key, this.selectedEstanteId}) : super(key: key);
 
   @override
@@ -47,31 +47,26 @@ class _BarcodeScannerWithOverlayState extends State<BarcodeScannerWithOverlay> {
               errorBuilder: (context, error, child) {
                 return ScannerErrorWidget(error: error);
               },
-              overlayBuilder: (context, constraints) {
-                return Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: Align(
-                    alignment: Alignment.bottomCenter,
-                    child: ScannedBarcodeLabel(
-                      barcodes: controller.barcodes,
-                      onScanned: (String qrData) {
-                        if (!_isNavigating) {
-                          _isNavigating = true;
-                          validarYEnviarDatos(context, widget.selectedEstanteId ?? "", qrData);
-                        }
-                      },
-                    ),
-                  ),
-                );
+              onDetect: (capture) async {
+                if (!_isNavigating) {
+                  final String qrData = capture.barcodes.first.displayValue ?? 'Información no obtenida.';
+                  _isNavigating = true;
+                  controller.stop();
+                  await validarYEnviarDatos(context, widget.selectedEstanteId ?? "", qrData, () {
+                    setState(() {
+                      _isNavigating = false;
+                    });
+                  });
+                  controller.start();
+                  await Future.delayed(const Duration(seconds: 2));
+                }
               },
             ),
           ),
           ValueListenableBuilder(
             valueListenable: controller,
             builder: (context, value, child) {
-              if (!value.isInitialized ||
-                  !value.isRunning ||
-                  value.error != null) {
+              if (!value.isInitialized || !value.isRunning || value.error != null) {
                 return const SizedBox();
               }
 
@@ -81,9 +76,9 @@ class _BarcodeScannerWithOverlayState extends State<BarcodeScannerWithOverlay> {
             },
           ),
           Positioned(
-            top: 16.0, // Margen desde la parte superior
-            left: 0, // Centrado horizontal
-            right: 0, // Centrado horizontal
+            top: 16.0,
+            left: 0,
+            right: 0,
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16.0),
               child: Row(
@@ -114,28 +109,18 @@ class Player {
   }
 }
 
-Future<void> validarYEnviarDatos(BuildContext context, String selectedId, String qrData) async {
+Future<void> validarYEnviarDatos(BuildContext context, String selectedId, String qrData, VoidCallback onComplete) async {
   try {
-    // Validar el QR primero
     final validacionResponse = await http.get(
       Uri.parse('https://ventas-productos-pvamp.000webhostapp.com/validar-qr.php?data=$qrData'),
     );
 
-    // Imprimir la respuesta de validación
-    print('Validación response: ${validacionResponse.statusCode}');
-    print('Validación body: ${validacionResponse.body}');
-
-     if (validacionResponse.statusCode == 200) {
-      // QR válido, proceder a enviar los datos
+    if (validacionResponse.statusCode == 200) {
       final response = await http.post(
         Uri.parse('https://ventas-productos-pvamp.000webhostapp.com/insertar-reporte-estante.php?datos=$qrData&estante=$selectedId'),
         body: json.encode({'selectedId': selectedId, 'data': qrData}),
         headers: {'Content-Type': 'application/json'},
       );
-
-      // Imprimir la respuesta de envío
-      print('Envío response: ${response.statusCode}');
-      print('Envío body: ${response.body}');
 
       if (response.statusCode == 200) {
         _showDialog(context, 'Éxito', 'Datos registrados exitosamente');
@@ -145,13 +130,14 @@ Future<void> validarYEnviarDatos(BuildContext context, String selectedId, String
         await Player.play('audio/wrong-sound.mp3');
       }
     } else {
-      // QR no válido
       _showDialog(context, 'Error', 'QR no válido');
       await Player.play('audio/wrong-sound.mp3');
     }
   } catch (error) {
     _showDialog(context, 'Error', 'Error al validar/enviar los datos: $error');
     await Player.play('audio/wrong-sound.mp3');
+  } finally {
+    onComplete();
   }
 }
 
@@ -175,7 +161,6 @@ void _showDialog(BuildContext context, String title, String message) {
   );
 }
 
-
 class ScannerOverlay extends CustomPainter {
   const ScannerOverlay({
     required this.scanWindow,
@@ -187,8 +172,6 @@ class ScannerOverlay extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    // TODO: use `Offset.zero & size` instead of Rect.largest
-    // we need to pass the size to the custom paint widget
     final backgroundPath = Path()..addRect(Rect.largest);
 
     final cutoutPath = Path()
@@ -226,16 +209,12 @@ class ScannerOverlay extends CustomPainter {
       bottomRight: Radius.circular(borderRadius),
     );
 
-    // First, draw the background,
-    // with a cutout area that is a bit larger than the scan window.
-    // Finally, draw the scan window itself.
     canvas.drawPath(backgroundWithCutout, backgroundPaint);
     canvas.drawRRect(borderRect, borderPaint);
   }
 
   @override
   bool shouldRepaint(ScannerOverlay oldDelegate) {
-    return scanWindow != oldDelegate.scanWindow ||
-        borderRadius != oldDelegate.borderRadius;
+    return scanWindow != oldDelegate.scanWindow || borderRadius != oldDelegate.borderRadius;
   }
 }
