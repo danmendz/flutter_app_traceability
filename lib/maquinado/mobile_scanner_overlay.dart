@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:audioplayers/audioplayers.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:escaner_qr/scanned_barcode_label.dart';
 import 'package:escaner_qr/scanner_button_widgets.dart';
 import 'package:escaner_qr/scanner_error_widget.dart';
 import 'result_screen.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
 
 class BarcodeScannerWithOverlay extends StatefulWidget {
   @override
@@ -50,14 +53,13 @@ class _BarcodeScannerWithOverlayState extends State<BarcodeScannerWithOverlay> {
                   if (qrData != _lastScannedData) {
                     _lastScannedData = qrData;
                     _isNavigating = true;
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => ResultScreen(qrData: qrData),
-                      ),
-                    ).then((_) {
-                      _isNavigating = false;
+                    controller.stop();
+                    await validarYNavegar(context, qrData, () {
+                      setState(() {
+                        _isNavigating = false;
+                      });
                     });
+                    controller.start();
                   }
                 }
               },
@@ -100,6 +102,70 @@ class _BarcodeScannerWithOverlayState extends State<BarcodeScannerWithOverlay> {
     super.dispose();
     await controller.dispose();
   }
+}
+
+class Player {
+  static play(String src) async {
+    final player = AudioPlayer();
+    await player.play(AssetSource(src));
+  }
+}
+
+Future<void> validarYNavegar(BuildContext context, String qrData, VoidCallback onComplete) async {
+  try {
+    final validacionResponse = await http.get(
+      Uri.parse('https://ventas-productos-pvamp.000webhostapp.com/validar-qr.php?data=$qrData'),
+    );
+
+    if (validacionResponse.statusCode == 200) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => ResultScreen(qrData: qrData),
+        ),
+      ).then((_) {
+        onComplete();
+      });
+    } else {
+      _showDialog(context, 'Error', 'QR no válido', Colors.red);
+      await Player.play('audio/wrong-sound.mp3');
+      await Future.delayed(const Duration(seconds: 2), () => Navigator.pop(context));
+      onComplete();
+    }
+  } catch (error) {
+    _showDialog(context, 'Error', 'Error al validar el QR: $error', Colors.red);
+    await Player.play('audio/wrong-sound.mp3');
+    await Future.delayed(const Duration(seconds: 2), () => Navigator.pop(context));
+    onComplete();
+  }
+}
+
+void _showDialog(BuildContext context, String title, String message, [Color? backgroundColor]) {
+  showDialog(
+    context: context,
+    barrierDismissible: false,
+    builder: (BuildContext context) {
+      return AlertDialog(
+        title: Text(
+          title,
+          style: TextStyle(color: backgroundColor != null ? Colors.white : Colors.black),
+        ),
+        content: Text(
+          message,
+          style: TextStyle(color: Colors.black),
+        ),
+        backgroundColor: backgroundColor ?? Colors.white,
+        // actions: <Widget>[
+        //   TextButton(
+        //     child: Text('OK'),
+        //     onPressed: () {
+        //       Navigator.of(context).pop();
+        //     },
+        //   ),
+        // ],
+      );
+    },
+  );
 }
 
 class ScannerOverlay extends CustomPainter {

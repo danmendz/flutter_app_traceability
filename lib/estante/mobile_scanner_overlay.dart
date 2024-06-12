@@ -13,7 +13,8 @@ class BarcodeScannerWithOverlay extends StatefulWidget {
   const BarcodeScannerWithOverlay({Key? key, this.selectedEstanteId}) : super(key: key);
 
   @override
-  _BarcodeScannerWithOverlayState createState() => _BarcodeScannerWithOverlayState();
+  _BarcodeScannerWithOverlayState createState() => 
+      _BarcodeScannerWithOverlayState();
 }
 
 class _BarcodeScannerWithOverlayState extends State<BarcodeScannerWithOverlay> {
@@ -123,39 +124,43 @@ Future<void> validarYEnviarDatos(BuildContext context, String selectedId, String
       );
 
       if (response.statusCode == 200) {
-        _showDialog(context, 'Éxito', 'Datos registrados exitosamente');
+        _showDialog(context, 'Éxito', 'Datos registrados exitosamente', Colors.green);
         await Player.play('audio/correct-sound.mp3');
+        await Future.delayed(const Duration(seconds: 2), () => Navigator.pop(context));
       } else {
-        _showDialog(context, 'Error', 'Error al enviar los datos escaneados: ${response.reasonPhrase}');
+        _showDialog(context, 'Error', 'Error al enviar los datos escaneados: ${response.reasonPhrase}', Colors.red);
         await Player.play('audio/wrong-sound.mp3');
+        await Future.delayed(const Duration(seconds: 2), () => Navigator.pop(context));
       }
     } else {
-      _showDialog(context, 'Error', 'QR no válido');
+      _showDialog(context, 'Error', 'QR no válido', Colors.red);
       await Player.play('audio/wrong-sound.mp3');
+      await Future.delayed(const Duration(seconds: 2), () => Navigator.pop(context));
     }
   } catch (error) {
-    _showDialog(context, 'Error', 'Error al validar/enviar los datos: $error');
+    _showDialog(context, 'Error', 'Error al validar/enviar los datos: $error', Colors.red);
     await Player.play('audio/wrong-sound.mp3');
+    await Future.delayed(const Duration(seconds: 2), () => Navigator.pop(context));
   } finally {
     onComplete();
   }
 }
 
-void _showDialog(BuildContext context, String title, String message) {
+void _showDialog(BuildContext context, String title, String message, [Color? backgroundColor]) {
   showDialog(
     context: context,
+    barrierDismissible: false,
     builder: (BuildContext context) {
       return AlertDialog(
-        title: Text(title),
-        content: Text(message),
-        actions: <Widget>[
-          TextButton(
-            child: Text('OK'),
-            onPressed: () {
-              Navigator.of(context).pop();
-            },
-          ),
-        ],
+        title: Text(
+          title,
+          style: TextStyle(color: backgroundColor != null ? Colors.white : Colors.black),
+        ),
+        content: Text(
+          message,
+          style: TextStyle(color: Colors.black),
+        ),
+        backgroundColor: backgroundColor ?? Colors.white,
       );
     },
   );
