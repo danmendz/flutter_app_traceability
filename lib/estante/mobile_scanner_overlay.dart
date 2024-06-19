@@ -118,49 +118,66 @@ Future<void> validarYEnviarDatos(BuildContext context, String selectedId, String
 
     if (validacionResponse.statusCode == 200) {
       final response = await http.post(
-        Uri.parse('https://ventas-productos-pvamp.000webhostapp.com/insertar-reporte-estante.php?datos=$qrData&estante=$selectedId'),
+        Uri.parse('https://ventas-productos-pvamp.000webhostapp.com/insertar-reporte-estante.php?datos=$qrData&id_estante=$selectedId'),
         body: json.encode({'selectedId': selectedId, 'data': qrData}),
         headers: {'Content-Type': 'application/json'},
       );
 
       if (response.statusCode == 200) {
-        _showDialog(context, 'Éxito', 'Datos registrados exitosamente', Colors.green);
+        _showDialog(context, 'Éxito', 'Datos registrados exitosamente', Colors.green, Icons.check_circle);
         await Player.play('audio/correct-sound.mp3');
-        await Future.delayed(const Duration(seconds: 2), () => Navigator.pop(context));
-      } else {
-        _showDialog(context, 'Error', 'Error al enviar los datos escaneados: ${response.reasonPhrase}', Colors.red);
+      } else if (response.statusCode == 402) {
+        _showDialog(context, '¡Advertencia!', 'Mismos datos registrados en menos de 2 minutos', Colors.yellow, Icons.warning);
         await Player.play('audio/wrong-sound.mp3');
-        await Future.delayed(const Duration(seconds: 2), () => Navigator.pop(context));
+      } else {
+        _showDialog(context, 'Error', 'Error al enviar los datos escaneados: ${response.reasonPhrase}', Colors.red, Icons.error_outline);
+        await Player.play('audio/wrong-sound.mp3');
       }
     } else {
-      _showDialog(context, 'Error', 'QR no válido', Colors.red);
+      _showDialog(context, 'Error', 'QR no válido', Colors.red, Icons.error_outline);
       await Player.play('audio/wrong-sound.mp3');
-      await Future.delayed(const Duration(seconds: 2), () => Navigator.pop(context));
     }
   } catch (error) {
-    _showDialog(context, 'Error', 'Error al validar/enviar los datos: $error', Colors.red);
+    _showDialog(context, 'Error', 'Error al validar/enviar los datos: $error', Colors.red, Icons.error);
     await Player.play('audio/wrong-sound.mp3');
-    await Future.delayed(const Duration(seconds: 2), () => Navigator.pop(context));
+    // await Future.delayed(const Duration(seconds: 2), () => Navigator.pop(context));
   } finally {
     onComplete();
   }
 }
 
-void _showDialog(BuildContext context, String title, String message, [Color? backgroundColor]) {
+void _showDialog(BuildContext context, String title, String message, Color? backgroundColor, IconData icon) {
   showDialog(
     context: context,
-    barrierDismissible: false,
+    barrierDismissible: true,
     builder: (BuildContext context) {
       return AlertDialog(
-        title: Text(
-          title,
-          style: TextStyle(color: backgroundColor != null ? Colors.white : Colors.black),
+        backgroundColor: backgroundColor ?? Colors.white,
+        title: Row(
+          children: [
+            Icon(icon, color: backgroundColor != null ? Colors.white : Colors.black),
+            SizedBox(width: 8),
+            Text(
+              title,
+              style: TextStyle(color: backgroundColor != null ? Colors.white : Colors.black),
+            ),
+          ],
         ),
         content: Text(
           message,
           style: TextStyle(color: Colors.black),
         ),
-        backgroundColor: backgroundColor ?? Colors.white,
+        actions: <Widget>[
+          TextButton(
+            child: Text(
+              "OK",
+              style: TextStyle(color: backgroundColor != null ? Colors.white : Colors.black),
+            ),
+            onPressed: () {
+              Navigator.of(context).pop();
+            },
+          ),
+        ],
       );
     },
   );

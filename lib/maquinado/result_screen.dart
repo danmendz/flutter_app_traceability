@@ -12,13 +12,6 @@ class ResultScreen extends StatefulWidget {
   _ResultScreenState createState() => _ResultScreenState();
 }
 
-class Player {
-  static play(String src) async {
-    final player = AudioPlayer();
-    await player.play(AssetSource(src));
-  }
-}
-
 // Model classes
 class Area {
   final String id;
@@ -75,6 +68,13 @@ class Operador {
       nombre: json['nombre'],
       idArea: json['id_area'],
     );
+  }
+}
+
+class Player {
+  static play(String src) async {
+    final player = AudioPlayer();
+    await player.play(AssetSource(src));
   }
 }
 
@@ -151,26 +151,42 @@ class _ResultScreenState extends State<ResultScreen> {
     ));
 
     if (response.statusCode == 200) {
+      _showDialog(context, 'Éxito', 'Datos registrados exitosamente', Colors.green, Icons.check_circle);
       // Éxito en la solicitud
-      _showDialog('Éxito', 'Datos registrados exitosamente');
       await Player.play('audio/correct-sound.mp3');
     } else {
       // Error en la solicitud
-      _showDialog('Error', 'Error al registrar datos: ${response.reasonPhrase}');
+      _showDialog(context, 'Error', 'Error al registrar datos: ${response.reasonPhrase}', Colors.red, Icons.error);
       await Player.play('audio/wrong-sound.mp3');
     }
   }
 
-  void _showDialog(String title, String message) {
+  void _showDialog(BuildContext context, String title, String message, Color? backgroundColor, IconData icon) {
     showDialog(
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: Text(title),
-          content: Text(message),
+          backgroundColor: backgroundColor ?? Colors.white,
+          title: Row(
+            children: [
+              Icon(icon, color: backgroundColor != null ? Colors.white : Colors.black),
+              SizedBox(width: 8),
+              Text(
+                title,
+                style: TextStyle(color: backgroundColor != null ? Colors.white : Colors.black),
+              ),
+            ],
+          ),
+          content: Text(
+            message,
+            style: TextStyle(color: Colors.black),
+          ),
           actions: <Widget>[
             TextButton(
-              child: Text('OK'),
+              child: Text(
+                "OK",
+                style: TextStyle(color: backgroundColor != null ? Colors.white : Colors.black),
+              ),
               onPressed: () {
                 Navigator.of(context).pop();
               },

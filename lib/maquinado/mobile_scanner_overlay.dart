@@ -50,17 +50,27 @@ class _BarcodeScannerWithOverlayState extends State<BarcodeScannerWithOverlay> {
               onDetect: (capture) async {
                 if (!_isNavigating) {
                   final String qrData = capture.barcodes.first.displayValue ?? 'Información no obtenida.';
-                  if (qrData != _lastScannedData) {
-                    _lastScannedData = qrData;
-                    _isNavigating = true;
-                    controller.stop();
-                    await validarYNavegar(context, qrData, () {
-                      setState(() {
-                        _isNavigating = false;
-                      });
+                  _isNavigating = true;
+                  controller.stop();
+                  await validarYNavegar(context, qrData, () {
+                    setState(() {
+                      _isNavigating = false;
                     });
-                    controller.start();
-                  }
+                  });
+                  controller.start();
+                  await Future.delayed(const Duration(seconds: 2));
+                  // if (qrData != _lastScannedData) {
+                  //   _lastScannedData = qrData;
+                  //   _isNavigating = true;
+                  //   controller.stop();
+                  //   await validarYNavegar(context, qrData, () {
+                  //     setState(() {
+                  //       _isNavigating = false;
+                  //     });
+                  //   });
+                  //   controller.start();
+                  //   await Future.delayed(const Duration(seconds: 2));
+                  // }
                 }
               },
             ),
@@ -127,42 +137,50 @@ Future<void> validarYNavegar(BuildContext context, String qrData, VoidCallback o
         onComplete();
       });
     } else {
-      _showDialog(context, 'Error', 'QR no válido', Colors.red);
+      _showDialog(context, 'Error', 'QR no válido', Colors.red, Icons.error_outline);
       await Player.play('audio/wrong-sound.mp3');
-      await Future.delayed(const Duration(seconds: 2), () => Navigator.pop(context));
       onComplete();
     }
   } catch (error) {
-    _showDialog(context, 'Error', 'Error al validar el QR: $error', Colors.red);
+    _showDialog(context, 'Error', 'Error al validar el QR: $error', Colors.red, Icons.error);
     await Player.play('audio/wrong-sound.mp3');
-    await Future.delayed(const Duration(seconds: 2), () => Navigator.pop(context));
+    // await Future.delayed(const Duration(seconds: 2), () => Navigator.pop(context));
     onComplete();
   }
 }
 
-void _showDialog(BuildContext context, String title, String message, [Color? backgroundColor]) {
+void _showDialog(BuildContext context, String title, String message, Color? backgroundColor, IconData icon) {
   showDialog(
     context: context,
-    barrierDismissible: false,
+    barrierDismissible: true,
     builder: (BuildContext context) {
       return AlertDialog(
-        title: Text(
-          title,
-          style: TextStyle(color: backgroundColor != null ? Colors.white : Colors.black),
+        title: Row(
+          children: [
+            Icon(icon, color: backgroundColor != null ? Colors.white : Colors.black),
+            SizedBox(width: 8),
+            Text(
+              title,
+              style: TextStyle(color: backgroundColor != null ? Colors.white : Colors.black),
+            ),
+          ],
         ),
         content: Text(
           message,
           style: TextStyle(color: Colors.black),
         ),
         backgroundColor: backgroundColor ?? Colors.white,
-        // actions: <Widget>[
-        //   TextButton(
-        //     child: Text('OK'),
-        //     onPressed: () {
-        //       Navigator.of(context).pop();
-        //     },
-        //   ),
-        // ],
+        actions: <Widget>[
+          TextButton(
+            child: Text(
+              "OK",
+              style: TextStyle(color: backgroundColor != null ? Colors.white : Colors.black),
+            ),
+            onPressed: () {
+              Navigator.of(context).pop();
+            },
+          ),
+        ],
       );
     },
   );
